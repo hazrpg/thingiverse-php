@@ -39,7 +39,7 @@ class Thingiverse {
 		$this->client_id = '';
 		$this->client_secret = '';
 
-		// Optional, can also be set in Thingiverse app settings 
+		// Optional, can also be set in Thingiverse app settings
 		$this->redirect_uri = '';
 
 		// Optional, if you already have your valid token. Otherwise, call oAuth().
@@ -57,12 +57,12 @@ class Thingiverse {
 	public function oAuth($code)
 	{
 		$this->url = 'https://www.thingiverse.com/login/oauth/access_token';
-		$this->post_params['client_id']     = $this->client_id; 
+		$this->post_params['client_id']     = $this->client_id;
 		$this->post_params['client_secret'] = $this->client_secret;
 		$this->post_params['code']          = $code;
-		
+
 		$response = $this->_send('POST', TRUE);
-		
+
 		preg_match('/access_token=(\w+)&token_type/', $response, $match);
 		$this->access_token = $match[1];
 	}
@@ -198,14 +198,14 @@ class Thingiverse {
 		$this->url = self::BASE_URL . 'things/' . $id . '/ancestors';
 
 		return $this->_send();
-	}	
-	
+	}
+
 	public function getThingDerivatives($id)
 	{
 		$this->url = self::BASE_URL . 'things/' . $id . '/derivatives';
 
 		return $this->_send();
-	}	
+	}
 
 	public function getThingTags($id)
 	{
@@ -479,7 +479,7 @@ class Thingiverse {
 	{
 		$this->url = self::BASE_URL . 'tags/';
 
-		if ($tag !== NULL) 
+		if ($tag !== NULL)
 			$this->url .= $tag;
 
 		return $this->_send();
@@ -516,9 +516,9 @@ class Thingiverse {
 			case 'GET':
 				break;
 			default:
-				exit("Invalid request type: '$type'.");		
+				exit("Invalid request type: '$type'.");
 		}
-		
+
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 
 		if ( ! $is_oauth)
@@ -531,7 +531,7 @@ class Thingiverse {
 
 		$response = curl_exec($curl);
 		$this->response_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-		
+
 		$header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
 		$response_header = substr($response, 0, $header_size);
 		$response_body = substr($response, $header_size);
