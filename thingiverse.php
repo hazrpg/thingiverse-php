@@ -36,8 +36,8 @@ class Thingiverse {
 	public function __construct($token = NULL)
 	{
 		// Required
-		$this->client_id = '';
-		$this->client_secret = '';
+		$this->client_id = CLIENT_ID;
+		$this->client_secret = CLIENT_SECRET;
 
 		// Optional, can also be set in Thingiverse app settings
 		$this->redirect_uri = '';
@@ -64,6 +64,7 @@ class Thingiverse {
 		$response = $this->_send('POST', TRUE);
 
 		preg_match('/access_token=(\w+)&token_type/', $response, $match);
+//		print print_r($match, true).print_r($response, true);
 		$this->access_token = $match[1];
 	}
 
