@@ -1,0 +1,178 @@
+#!/usr/bin/php
+<?php
+/**
+ * User: hazrpg
+ * Date: 19/01/18
+ * Time: 16:26
+ */
+
+require_once 'config.php';
+require_once 'thingiverse_keys.php';
+require_once 'thingiverse.php';
+
+if(FORCE_DOWNLOAD == true) cliColour('red', '*** WARNING! FORCE_DOWNLOAD IS ENABLED ***', true, true);
+if(DEBUG == true) cliColour('red', '*** DEBUG MODE TURNED ON! ***', true, true);
+
+try {
+    if(empty(ACCESS_TOKEN)) {
+        // Don't use this token in release!
+        $api = new Thingiverse(APP_TOKEN);
+
+        echo "Copy and paste the following code, and type in the code once authorised:\n";
+
+        // Make a login request.
+        echo $api->makeLoginURL();
+
+        echo "\nPlease type in your code received when ready:\n";
+
+        $handle = fopen ("php://stdin","r");
+        $oauth_code = fgets($handle);
+        if(empty(trim($oauth_code))){
+            echo "ABORTING!\n";
+            exit;
+        }
+        fclose($handle);
+        echo "\n";
+
+        $api->oAuth(trim($oauth_code));
+    } else {
+        // Don't use this token in release!
+        $api = new Thingiverse(ACCESS_TOKEN);
+    }
+
+    $people = new stdClass();
+    $people->test = getFiles('test', $api);
+
+    if(DEBUG == true) cliColour('bluew', "\n***DEBUG OUTPUT***\n\n".print_r($people, true), true, true);
+
+//    print print_r($api->response_data, true);
+//    print print_r($collections, true);
+
+} catch (Exception $e) {
+    echo print_r($e, true);
+}
+
+
+
+function getFiles($user, $api) {
+    echo cliColour('yellow', "Getting $user's collections...");
+    $api->getUserCollections($user);
+    $collections = $api->response_data;
+    echo cliColour('green', " done!", true);
+
+    echo cliColour('yellow', "Getting $user's things...", true);
+    $things = array();
+    foreach($collections as $collection) {
+        echo cliColour('dyellow', "|-> Getting things from \"{$collection->name}\"...");
+        $api->getCollectionThings($collection->id);
+        $collection->things = $api->response_data;
+        echo cliColour('green', " done!", true);
+    }
+
+    foreach($collections as $collection) {
+        echo cliColour('yellow', "Creating $user's collection directory called \"{$collection->name}\"...");
+        $collection_dir = DL_DIR.$user.DS.makeFolderName($collection->name);
+
+        // Check if already exits.
+        if(!is_dir($collection_dir)) {
+            mkdir($collection_dir, DIR_PERMISSIONS, true);
+            echo cliColour('green', " done!", true);
+        } else {
+            cliColour('pred', ' skipped!', true, true);
+        }
+
+        foreach($collection->things as $thing) {
+            echo cliColour('dyellow', "|-> Creating thing directory called \"{$thing->name} ({$thing->id})\"...");
+            $thing_dir = $collection_dir.DS.makeFolderName($thing->name)." ({$thing->id})";
+
+            // Check if already exists.
+            if(!is_dir($thing_dir)) {
+                mkdir($thing_dir, DIR_PERMISSIONS, true);
+                echo cliColour('green', " done!", true);
+            } else {
+                cliColour('pred', ' skipped!', true, true);
+                if(FORCE_DOWNLOAD == false) continue;
+            }
+
+            echo cliColour('blue', "|--> Downloading thing \"{$thing->name}\"...");
+            $zip_name = $thing_dir.DS."zip";
+            $f = file_put_contents($zip_name, fopen($thing->public_url.'/zip', 'r'), LOCK_EX);
+            if(FALSE === $f) {
+                echo cliColour('red', ' failed!', true);
+            } else {
+                echo cliColour('green', ' done!');
+
+                echo cliColour('pink', " Extracting this thing...");
+                $zip = new ZipArchive;
+                $res = $zip->open($zip_name);
+                if ($res === TRUE) {
+                    $zip->extractTo($thing_dir);
+                    $zip->close();
+                    echo cliColour('green', " done!", true);
+                    //
+                } else {
+                    echo cliColour('red', " failed!", true);
+                }
+            }
+        }
+    }
+
+    return $collections;
+}
+
+function makeFolderName($string) {
+    // Remove anything which isn't a word, whitespace, number
+    // or any of the following caracters -_~,;[]().
+    // If you don't need to handle multi-byte characters
+    // you can use preg_replace rather than mb_ereg_replace
+    // Thanks @Łukasz Rysiak!
+    $string = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $string);
+    // Remove any runs of periods (thanks falstro!)
+    $string = mb_ereg_replace("([\.]{2,})", '', $string);
+
+    return $string;
+}
+
+function cliColour($colour, $text, $nl=false, $echo=false) {
+    $nl == true ? $nl = "\n" : $nl = '';
+
+    if($echo == true) echo cliColour($colour, $text, $nl);
+
+    switch($colour) {
+        case 'red':
+            // White text on red background.
+            return "\e[97m\e[41m$text\e[0m$nl";
+            break;
+        case 'green':
+            // Just light green text.
+            return "\e[92m$text\e[0m$nl";
+            break;
+        case 'yellow':
+            // Just light yellow text.
+            return "\e[93m$text\e[0m$nl";
+            break;
+        case 'dyellow':
+            // Just dark yellow text.
+            return "\e[33m$text\e[0m$nl";
+            break;
+        case 'blue':
+            // Just blue text.
+            return "\e[94m$text\e[0m$nl";
+            break;
+        case 'bluew':
+            // White text on blue background.
+            return "\e[97m\e[44m$text\e[0m$nl";
+            break;
+        case 'pink':
+            // Just pink text.
+            return "\e[95m$text\e[0m$nl";
+            break;
+        case 'pred':
+            // Just red text.
+            return "\e[91m$text\e[0m$nl";
+            break;
+        default:
+            break;
+    }
+    return $text;
+}
