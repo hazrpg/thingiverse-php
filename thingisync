@@ -96,16 +96,23 @@ function getFiles($user, $api) {
 
             echo cliColour('blue', "|--> Downloading thing \"{$thing->name}\"...");
             $zip_name = $thing_dir.DS."zip";
-            $f = file_put_contents($zip_name, fopen($thing->public_url.'/zip', 'r'), LOCK_EX);
-            if(FALSE === $f) {
+            try {
+                $handle = fopen($thing->public_url.'/zip', 'r');
+                $f = file_put_contents($zip_name, $handle, LOCK_EX);
+            } catch(Exception $e) {
+                $f = 404;
+            }
+            if($f === false) {
                 echo cliColour('pred', ' failed!', true);
+            } elseif($f === 404) {
+                echo cliColour('pred', ' zip file missing!', true);
             } else {
                 echo cliColour('green', ' done!');
 
                 echo cliColour('pink', " Extracting this thing...");
                 $zip = new ZipArchive;
                 $res = $zip->open($zip_name);
-                if ($res === TRUE) {
+                if ($res === true) {
                     $zip->extractTo($thing_dir);
                     $zip->close();
                     echo cliColour('green', " done!", true);
