@@ -78,7 +78,7 @@ function getFiles($user, $api) {
             mkdir($collection_dir, DIR_PERMISSIONS, true);
             echo cliColour('green', " done!", true);
         } else {
-            cliColour('pred', ' skipped!', true, true);
+            cliColour('yellow', ' skipped!', true, true);
         }
 
         foreach($collection->things as $thing) {
@@ -90,7 +90,7 @@ function getFiles($user, $api) {
                 mkdir($thing_dir, DIR_PERMISSIONS, true);
                 echo cliColour('green', " done!", true);
             } else {
-                cliColour('pred', ' skipped!', true, true);
+                cliColour('yellow', ' skipped!', true, true);
                 if(FORCE_DOWNLOAD == false) continue;
             }
 
@@ -98,7 +98,7 @@ function getFiles($user, $api) {
             $zip_name = $thing_dir.DS."zip";
             $f = file_put_contents($zip_name, fopen($thing->public_url.'/zip', 'r'), LOCK_EX);
             if(FALSE === $f) {
-                echo cliColour('red', ' failed!', true);
+                echo cliColour('pred', ' failed!', true);
             } else {
                 echo cliColour('green', ' done!');
 
